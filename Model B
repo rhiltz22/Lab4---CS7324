@@ -1,0 +1,27 @@
+# Identify numeric columns (all except State, which is the only categorical we kept)
+# State is column index 0 after dropping County and TractId
+# We'll normalize all columns except State (index 0)
+state_col_idx = 0  # first column in X is State after our preprocessing
+
+scaler_b = StandardScaler()
+# Normalize all continuous features; leave State integer as-is for now
+X_train_b = X_train.copy().astype(float)
+X_test_b  = X_test.copy().astype(float)
+
+continuous_cols = [i for i in range(X_train.shape[1]) if i != state_col_idx]
+X_train_b[:, continuous_cols] = scaler_b.fit_transform(X_train[:, continuous_cols])
+X_test_b[:, continuous_cols]  = scaler_b.transform(X_test[:, continuous_cols])
+
+nn_b = TwoLayerPerceptron(n_hidden=64, C=0.01, epochs=200, eta=0.0005,
+                           minibatches=50, random_state=42)
+nn_b.fit(X_train_b, Y_train_enc, print_progress=50)
+
+acc_b_train = accuracy_score(y_train, nn_b.predict(X_train_b))
+acc_b_test  = accuracy_score(y_test,  nn_b.predict(X_test_b))
+print(f'\nModel B | Train Acc: {acc_b_train:.4f} | Test Acc: {acc_b_test:.4f}')
+
+plt.figure(figsize=(8,4))
+plt.plot(nn_b.cost_, color='darkorange')
+plt.xlabel('Epoch'); plt.ylabel('Cross-Entropy Loss')
+plt.title('Model B: Loss vs Epoch (Normalized, No OHE)')
+plt.tight_layout(); plt.show()
