@@ -1,3 +1,6 @@
+# We use quartiles to create four classes of approximately equal size. This is the most principled balancing method because it simultaneously determines the class boundaries and guarantees balance. The thresholds are computed only on the training set to prevent data leakage, then the same thresholds are then applied to the test set.
+# Balancing should be applied only to the training set. The test set should reflect the true distribution of the real world. If we balanced the test set, our accuracy metric would be a measure of balanced performance rather than real-world expected performance.
+
 # load raw shape
 df_raw = pd.read_csv('acs2017_census_tract_data.csv')
 print('Raw shape:', df_raw.shape)
