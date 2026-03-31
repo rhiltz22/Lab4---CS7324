@@ -16,3 +16,35 @@ df['State'] = le_state.fit_transform(df['State'])
 
 print('\nFeatures:', df.shape[1]-1, '| Target: ChildPoverty')
 print(df.head(3))
+
+# split
+# separate features and target
+X_all = df.drop(columns=['ChildPoverty', 'TractId']).values
+y_continuous = df['ChildPoverty'].values
+
+# compute quartile thresholds from data
+q25, q50, q75 = np.quantile(y_continuous, [0.25, 0.5, 0.75])
+print(f'Quartile thresholds: 25%={q25:.2f}, 50%={q50:.2f}, 75%={q75:.2f}')
+
+def quantize(y, thresholds):
+    q25, q50, q75 = thresholds
+    labels = np.zeros(len(y), dtype=int)
+    labels[y >= q25] = 1
+    labels[y >= q50] = 2
+    labels[y >= q75] = 3
+return labels
+
+y_class = quantize(y_continuous, (q25, q50, q75))
+
+# 80/20 split
+X_train, X_test, y_train, y_test = train_test_split(
+    X_all, y_class, test_size=0.2, random_state=42, stratify=y_class
+)
+
+# verify class balance
+unique, counts = np.unique(y_train, return_counts=True)
+print('\nTraining class distribution:')
+for cls, cnt in zip(unique, counts):
+    print(f'  Class {cls}: {cnt} ({100*cnt/len(y_train):.1f}%)')
+
+print(f'\nX_train: {X_train.shape}, X_test: {X_test.shape}')
