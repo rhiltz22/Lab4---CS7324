@@ -1,1 +1,11 @@
+# one hot encode target labels
+def encode_labels_onehot(y, n_classes=4):
+    """One-hot encode labels into shape (n_classes, n_samples)."""
+    ohe = np.zeros((n_classes, len(y)))
+    for i, label in enumerate(y):
+        ohe[label, i] = 1.0
+    return ohe
 
+Y_train_enc = encode_labels_onehot(y_train)
+Y_test_enc  = encode_labels_onehot(y_test)
+print('Y_train_enc shape:', Y_train_enc.shape)
