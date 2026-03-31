@@ -1,0 +1,67 @@
+class DeepMLPRMSProp(DeepMLP):
+    """DeepMLP with RMSProp adaptive learning."""
+
+    def __init__(self, rms_decay=0.9, **kwargs):
+        super().__init__(**kwargs)
+        self.rms_decay = rms_decay   # decay rate for running average (rho)
+
+    def fit(self, X, Y_enc, print_progress=0):
+        X_data = X.copy()
+        Y_data = Y_enc.copy()
+        self.n_features_ = X_data.shape[1]
+        self.n_output_   = Y_data.shape[0]
+        self._initialize_weights()
+
+        # RMSProp accumulators: running mean of squared gradients
+        G_W = [np.zeros_like(W) for W in self.weights_]
+        G_b = [np.zeros_like(b) for b in self.biases_]
+        eps = 1e-8
+        rho = self.rms_decay
+
+        self.cost_ = []
+        self.grad_mags_ = [[] for _ in self.weights_]
+
+        for epoch in range(self.epochs):
+            if self.shuffle:
+                idx = np.random.permutation(X_data.shape[0])
+                X_data, Y_data = X_data[idx], Y_data[:, idx]
+
+            batches = np.array_split(range(X_data.shape[0]), self.minibatches)
+            batch_costs = []
+            epoch_grads = [[] for _ in self.weights_]
+
+            for bi in batches:
+                Xb = X_data[bi]
+                Yb = Y_data[:, bi]
+
+                A, Z = self._feedforward(Xb)
+                batch_costs.append(self._cost(A[-1], Yb))
+
+                gW, gb = self._backprop(A, Z, Yb)
+                for i in range(len(self.weights_)):
+                    # Update running average of squared gradients
+                    G_W[i] = rho * G_W[i] + (1 - rho) * gW[i]**2
+                    G_b[i] = rho * G_b[i] + (1 - rho) * gb[i]**2
+
+                    # Adaptive update
+                    self.weights_[i] -= self.eta * gW[i] / (np.sqrt(G_W[i]) + eps)
+                    self.biases_[i]  -= self.eta * gb[i] / (np.sqrt(G_b[i]) + eps)
+                    epoch_grads[i].append(np.mean(np.abs(gW[i])))
+
+            self.cost_.append(np.mean(batch_costs))
+            for i in range(len(self.weights_)):
+                self.grad_mags_[i].append(np.mean(epoch_grads[i]))
+
+            if print_progress > 0 and (epoch + 1) % print_progress == 0:
+                sys.stderr.write(f'\rEpoch {epoch+1}/{self.epochs}  Loss: {self.cost_[-1]:.4f}')
+                sys.stderr.flush()
+
+        if print_progress > 0:
+            sys.stderr.write('\n')
+        return self
+
+nn5_rms = DeepMLPRMSProp(hidden_sizes=(64, 64, 64, 64), C=0.01, epochs=200,
+                          eta=0.001, rms_decay=0.9, minibatches=50, random_state=42)
+nn5_rms.fit(X_train_c, Y_train_enc, print_progress=50)
+acc5r_tr, acc5r_te = plot_results(nn5_rms, '5-Layer MLP + RMSProp',
+                                   X_train_c, y_train, X_test_c, y_test)
