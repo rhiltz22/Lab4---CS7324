@@ -1,0 +1,140 @@
+class DeepMLP:
+    """N-layer MLP with vectorized backprop, mini-batching, cross-entropy loss,
+    Glorot initialization, and per-layer gradient magnitude tracking."""
+
+    def __init__(self, hidden_sizes=(64,), C=0.01, epochs=200, eta=0.001,
+                 minibatches=50, shuffle=True, random_state=42):
+        np.random.seed(random_state)
+        self.hidden_sizes = hidden_sizes  # tuple of ints, one per hidden layer
+        self.l2_C = C
+        self.epochs = epochs
+        self.eta = eta
+        self.minibatches = minibatches
+        self.shuffle = shuffle
+
+    @staticmethod
+    def _sigmoid(z):
+        return expit(z)
+
+    def _initialize_weights(self):
+        """Glorot uniform initialization for all layers."""
+        layer_sizes = [self.n_features_] + list(self.hidden_sizes) + [self.n_output_]
+        self.weights_ = []  # list of W matrices
+        self.biases_  = []  # list of b vectors
+        for i in range(len(layer_sizes) - 1):
+            fan_in, fan_out = layer_sizes[i], layer_sizes[i+1]
+            bound = 4 * np.sqrt(6.0 / (fan_in + fan_out))
+            W = np.random.uniform(-bound, bound, (fan_out, fan_in))
+            b = np.zeros((fan_out, 1))
+            if i == len(layer_sizes) - 2:   # output bias: push toward zero mean
+                b -= 2.0
+            self.weights_.append(W)
+            self.biases_.append(b)
+
+    def _feedforward(self, X):
+        """Returns list of activations A (length = n_layers+1) and pre-activations Z."""
+        A = [X.T]   # A[0] = input
+        Z = []
+        for i, (W, b) in enumerate(zip(self.weights_, self.biases_)):
+            z = W @ A[-1] + b
+            Z.append(z)
+            A.append(self._sigmoid(z))
+        return A, Z
+
+    def _cost(self, A_out, Y_enc):
+        ce = -np.mean(np.nan_to_num(
+            Y_enc * np.log(A_out + 1e-7) + (1 - Y_enc) * np.log(1 - A_out + 1e-7)
+        ))
+        l2 = (self.l2_C / 2.0) * sum(np.sum(W**2) for W in self.weights_)
+        return ce + l2
+
+    def _backprop(self, A, Z, Y_enc):
+        """Vectorized backprop. Returns lists of gradients per layer."""
+        n_layers = len(self.weights_)
+        gW = [None] * n_layers
+        gb = [None] * n_layers
+
+        # Output layer delta (cross-entropy + sigmoid)
+        delta = A[-1] - Y_enc
+
+        for i in reversed(range(n_layers)):
+            gW[i] = delta @ A[i].T
+            gb[i] = np.sum(delta, axis=1, keepdims=True)
+            gW[i] += self.l2_C * self.weights_[i]
+
+            if i > 0:   # propagate delta backward
+                delta = A[i] * (1 - A[i]) * (self.weights_[i].T @ delta)
+
+        return gW, gb
+
+    def predict(self, X):
+        A, _ = self._feedforward(X)
+        return np.argmax(A[-1], axis=0)
+
+    def fit(self, X, Y_enc, print_progress=0):
+        X_data = X.copy()
+        Y_data = Y_enc.copy()
+        self.n_features_ = X_data.shape[1]
+        self.n_output_   = Y_data.shape[0]
+        self._initialize_weights()
+
+        self.cost_ = []
+        # grad_mags_[layer_i] = list of average gradient magnitude per epoch
+        self.grad_mags_ = [[] for _ in self.weights_]
+
+        for epoch in range(self.epochs):
+            if self.shuffle:
+                idx = np.random.permutation(X_data.shape[0])
+                X_data, Y_data = X_data[idx], Y_data[:, idx]
+
+            batches = np.array_split(range(X_data.shape[0]), self.minibatches)
+            batch_costs = []
+            epoch_grads = [[] for _ in self.weights_]
+
+            for bi in batches:
+                Xb = X_data[bi]
+                Yb = Y_data[:, bi]
+
+                A, Z = self._feedforward(Xb)
+                cost = self._cost(A[-1], Yb)
+                batch_costs.append(cost)
+
+                gW, gb = self._backprop(A, Z, Yb)
+                for i in range(len(self.weights_)):
+                    self.weights_[i] -= self.eta * gW[i]
+                    self.biases_[i]  -= self.eta * gb[i]
+                    # record L2-norm of gradient for this batch
+                    epoch_grads[i].append(np.mean(np.abs(gW[i])))
+
+            self.cost_.append(np.mean(batch_costs))
+            for i in range(len(self.weights_)):
+                self.grad_mags_[i].append(np.mean(epoch_grads[i]))
+
+            if print_progress > 0 and (epoch + 1) % print_progress == 0:
+                sys.stderr.write(f'\rEpoch {epoch+1}/{self.epochs}  Loss: {self.cost_[-1]:.4f}')
+                sys.stderr.flush()
+
+        if print_progress > 0:
+            sys.stderr.write('\n')
+        return self
+
+
+def plot_results(model, title, X_tr, y_tr, X_te, y_te):
+    acc_tr = accuracy_score(y_tr, model.predict(X_tr))
+    acc_te = accuracy_score(y_te, model.predict(X_te))
+    print(f'{title}: Train={acc_tr:.4f}, Test={acc_te:.4f}')
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 4))
+    axes[0].plot(model.cost_, color='steelblue')
+    axes[0].set_xlabel('Epoch'); axes[0].set_ylabel('Loss')
+    axes[0].set_title(f'{title} — Loss')
+
+    colors = plt.cm.viridis(np.linspace(0, 1, len(model.grad_mags_)))
+    for i, (mags, col) in enumerate(zip(model.grad_mags_, colors)):
+        axes[1].plot(mags, color=col, label=f'Layer {i+1}')
+    axes[1].set_xlabel('Epoch'); axes[1].set_ylabel('Mean |Gradient|')
+    axes[1].set_title(f'{title} — Gradient Magnitudes')
+    axes[1].legend()
+
+    plt.tight_layout(); plt.show()
+    return acc_tr, acc_te
