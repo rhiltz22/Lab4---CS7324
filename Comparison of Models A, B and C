@@ -1,0 +1,18 @@
+# The raw data has features with vastly different scales (e.g., TotalPop can be in the thousands while FamilyWork is near zero). Without normalization, the gradient updates are dominated by the large-scale features, causing the weights for small-scale features to barely move. 
+# After normalization all features contribute equally to the gradient, leading to faster and more stable convergence.
+# The State variable was already label-encoded as integers 0–51. When passed through the network as an integer, the network might inadvertently interpret higher-numbered states as "more important" than lower-numbered ones. One-hot encoding removes this false ordering.
+# The effect is often moderate because the network can partially compensate with its weights, but OHE provides a cleaner representation.
+
+print('=== Model Comparison ===')
+print(f'Model A (no norm, no OHE): Train={acc_a_train:.4f}, Test={acc_a_test:.4f}')
+print(f'Model B (norm, no OHE):    Train={acc_b_train:.4f}, Test={acc_b_test:.4f}')
+print(f'Model C (norm + OHE):      Train={acc_c_train:.4f}, Test={acc_c_test:.4f}')
+
+# loss curve graph
+plt.figure(figsize=(10,4))
+plt.plot(nn_a.cost_, label='A: No norm', color='steelblue')
+plt.plot(nn_b.cost_, label='B: Norm', color='darkorange')
+plt.plot(nn_c.cost_, label='C: Norm+OHE', color='green')
+plt.xlabel('Epoch'); plt.ylabel('Loss')
+plt.title('Loss Comparison: Models A, B, C')
+plt.legend(); plt.tight_layout(); plt.show()
