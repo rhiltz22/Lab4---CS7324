@@ -1,0 +1,4 @@
+nn3 = DeepMLP(hidden_sizes=(64, 64), C=0.01, epochs=200, eta=0.001,
+              minibatches=50, random_state=42)
+nn3.fit(X_train_c, Y_train_enc, print_progress=50)
+acc3_tr, acc3_te = plot_results(nn3, '3-Layer MLP', X_train_c, y_train, X_test_c, y_test)
