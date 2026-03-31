@@ -1,0 +1,29 @@
+# One-hot encode State
+n_states = int(X_train[:, state_col_idx].max()) + 1
+
+def ohe_state(X, n_states):
+    states = X[:, state_col_idx].astype(int)
+    ohe = np.zeros((len(X), n_states))
+    ohe[np.arange(len(X)), states] = 1.0
+    # replace original state col with OHE cols
+    rest = np.delete(X, state_col_idx, axis=1)
+    return np.hstack([rest, ohe])
+
+# Normalize continuous features first, then OHE State
+X_train_c = ohe_state(X_train_b, n_states)
+X_test_c  = ohe_state(X_test_b,  n_states)
+print('Shape after OHE:', X_train_c.shape)
+
+nn_c = TwoLayerPerceptron(n_hidden=64, C=0.01, epochs=200, eta=0.0005,
+                           minibatches=50, random_state=42)
+nn_c.fit(X_train_c, Y_train_enc, print_progress=50)
+
+acc_c_train = accuracy_score(y_train, nn_c.predict(X_train_c))
+acc_c_test  = accuracy_score(y_test,  nn_c.predict(X_test_c))
+print(f'\nModel C | Train Acc: {acc_c_train:.4f} | Test Acc: {acc_c_test:.4f}')
+
+plt.figure(figsize=(8,4))
+plt.plot(nn_c.cost_, color='green')
+plt.xlabel('Epoch'); plt.ylabel('Cross-Entropy Loss')
+plt.title('Model C: Loss vs Epoch (Normalized + OHE)')
+plt.tight_layout(); plt.show()
