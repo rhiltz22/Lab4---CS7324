@@ -1,1 +1,18 @@
+# load raw shape
+df_raw = pd.read_csv('acs2017_census_tract_data.csv')
+print('Raw shape:', df_raw.shape)
 
+# drop missing
+df = df_raw.dropna().copy()
+print('After dropping missing values:', df.shape)
+
+# remove County - too many categories (3000+), label-encoding meaningless,
+#     one-hot encoding would explode feature space.
+df.drop(columns=['County'], inplace=True)
+
+# encode string data (State) as integers
+le_state = LabelEncoder()
+df['State'] = le_state.fit_transform(df['State'])
+
+print('\nFeatures:', df.shape[1]-1, '| Target: ChildPoverty')
+print(df.head(3))
