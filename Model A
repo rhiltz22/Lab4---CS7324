@@ -1,1 +1,13 @@
+nn_a = TwoLayerPerceptron(n_hidden=64, C=0.01, epochs=200, eta=0.0005,
+                           minibatches=50, random_state=42)
+nn_a.fit(X_train, Y_train_enc, print_progress=50)
 
+acc_a_train = accuracy_score(y_train, nn_a.predict(X_train))
+acc_a_test  = accuracy_score(y_test,  nn_a.predict(X_test))
+print(f'\nModel A | Train Acc: {acc_a_train:.4f} | Test Acc: {acc_a_test:.4f}')
+
+plt.figure(figsize=(8,4))
+plt.plot(nn_a.cost_, color='steelblue')
+plt.xlabel('Epoch'); plt.ylabel('Cross-Entropy Loss')
+plt.title('Model A: Loss vs Epoch (No Normalization, No OHE)')
+plt.tight_layout(); plt.show()
