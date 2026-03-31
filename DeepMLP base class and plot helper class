@@ -1,7 +1,4 @@
 class DeepMLP:
-    """N-layer MLP with vectorized backprop, mini-batching, cross-entropy loss,
-    Glorot initialization, and per-layer gradient magnitude tracking."""
-
     def __init__(self, hidden_sizes=(64,), C=0.01, epochs=200, eta=0.001,
                  minibatches=50, shuffle=True, random_state=42):
         np.random.seed(random_state)
@@ -17,7 +14,6 @@ class DeepMLP:
         return expit(z)
 
     def _initialize_weights(self):
-        """Glorot uniform initialization for all layers."""
         layer_sizes = [self.n_features_] + list(self.hidden_sizes) + [self.n_output_]
         self.weights_ = []  # list of W matrices
         self.biases_  = []  # list of b vectors
@@ -32,7 +28,6 @@ class DeepMLP:
             self.biases_.append(b)
 
     def _feedforward(self, X):
-        """Returns list of activations A (length = n_layers+1) and pre-activations Z."""
         A = [X.T]   # A[0] = input
         Z = []
         for i, (W, b) in enumerate(zip(self.weights_, self.biases_)):
@@ -49,7 +44,6 @@ class DeepMLP:
         return ce + l2
 
     def _backprop(self, A, Z, Y_enc):
-        """Vectorized backprop. Returns lists of gradients per layer."""
         n_layers = len(self.weights_)
         gW = [None] * n_layers
         gb = [None] * n_layers
