@@ -1,0 +1,8 @@
+ Compare the performance of the three models you just trained. Are there any meaningful differences in performance? 
+Explain, in your own words, why these models have (or do not have) different performances.
+
+There was a big difference in the performances of each model. Model A was trained on raw unnormalized features with no one-hot encoding and only achieved a 25.2% test accuracy.
+Without normalization, the features are on very different scales, and it is nearly impossible for the network to learn effectively.
+Model B added normalization, but no one-hot encoding and accuracy went up to 68.6%. Putting all the features on the same scale allows the gradient descent to move more smoothly.
+Model C had both normalization and a one-hot encoding of 'State' variable, getting an accuracy of 72.3%. This increase in accuracy is because
+with one-hot encoding, each state is treated independently rather than the implied ranking of label-encoding. 
