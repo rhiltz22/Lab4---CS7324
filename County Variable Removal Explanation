@@ -1,0 +1,2 @@
+The 'County' variable was removed from the dataset because it has over 3,000 unique string values.
+One hot encoding this would add thousands of columns to the feature space, making training impractical.
