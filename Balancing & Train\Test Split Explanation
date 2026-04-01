@@ -1,0 +1,4 @@
+For this problem we converted 'ChildPoverty' into a four-class classification problem using the 25th, 50th, and 75th quartiles/percentiles to balance the classes without discarding any data or artificially oversampling.
+Quantization thresholds work here because 'ChildPoverty is a continuous variable with a smooth distribution.
+Balancing is only done to the training set and not the testing set because the test set is supposed to represent real-world data.
+If that data were to be balanced, we'd be evaluating on a distribution that it will never see in practice and would end up with a misleading accuracy metric.
